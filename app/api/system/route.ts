@@ -736,10 +736,12 @@ function getHostIP(): string {
             fibTrie = readHostFile("/proc/net/fib_trie", () => "");
           }
           
-          if (fibTrie && fibTrie.length > 0) {
+          if (fibTrie && fibTrie.length > 0 && mainInterface) {
+            // Créer une variable locale pour que TypeScript comprenne que mainInterface n'est pas null
+            const interfaceName = mainInterface;
             // Chercher toutes les occurrences de cette interface dans fib_trie
-            const ifaceLines = fibTrie.split("\n").filter(line => line.includes(mainInterface));
-            console.log(`  Lignes avec ${mainInterface} dans fib_trie: ${ifaceLines.length}`);
+            const ifaceLines = fibTrie.split("\n").filter(line => line.includes(interfaceName));
+            console.log(`  Lignes avec ${interfaceName} dans fib_trie: ${ifaceLines.length}`);
             
             for (const ifaceLine of ifaceLines) {
               const ipMatches = Array.from(ifaceLine.matchAll(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g));
