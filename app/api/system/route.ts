@@ -964,6 +964,23 @@ export async function GET() {
     const cpuUsage = getHostCPUUsage();
     const diskUsage = getHostDiskUsage();
 
+    // Calculer les stats du disque pour afficher les valeurs en GB
+    let diskTotal = 0;
+    let diskUsed = 0;
+    let diskFree = 0;
+    try {
+      let rootPath = "/";
+      if (fs.existsSync("/proc/1/root")) {
+        rootPath = "/proc/1/root/";
+      }
+      const stats = fs.statfsSync(rootPath);
+      diskTotal = stats.blocks * stats.bsize;
+      diskFree = stats.bavail * stats.bsize;
+      diskUsed = diskTotal - diskFree;
+    } catch (e) {
+      // Si erreur, on garde 0
+    }
+
     return NextResponse.json({
       memory: {
         total: memory.total,
@@ -972,7 +989,12 @@ export async function GET() {
         used: memory.total - memory.available,
       },
       cpuUsage,
-      diskUsage,
+      disk: {
+        total: diskTotal,
+        used: diskUsed,
+        free: diskFree,
+        usage: diskUsage,
+      },
       hostMounted,
     });
   } catch (error) {

@@ -11,7 +11,12 @@ interface SystemData {
     used: number;
   };
   cpuUsage: number;
-  diskUsage: number;
+  disk: {
+    total: number;
+    used: number;
+    free: number;
+    usage: number;
+  };
   hostMounted: boolean;
 }
 
@@ -67,9 +72,15 @@ export default function SystemInfo() {
 
   const totalMem = systemData.memory.total / 1024 / 1024 / 1024;
   const usedMem = systemData.memory.used / 1024 / 1024 / 1024;
+  const availableMem = systemData.memory.available / 1024 / 1024 / 1024;
   const memUsagePercent = (usedMem / totalMem) * 100;
+  
   const cpuUsagePercent = systemData.cpuUsage || 0;
-  const diskUsagePercent = systemData.diskUsage || 0;
+  
+  const totalDisk = systemData.disk.total / 1024 / 1024 / 1024;
+  const usedDisk = systemData.disk.used / 1024 / 1024 / 1024;
+  const freeDisk = systemData.disk.free / 1024 / 1024 / 1024;
+  const diskUsagePercent = systemData.disk.usage || 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -83,12 +94,21 @@ export default function SystemInfo() {
             {memUsagePercent.toFixed(1)}%
           </div>
         </div>
-        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700">
+        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700 mb-3">
           <div
             className="absolute inset-y-0 left-0 bg-gray-700 dark:bg-gray-300 rounded-full transition-all duration-1000 ease-out"
             style={{ width: `${memUsagePercent}%` }}
           >
             <div className="absolute inset-0 bg-white/10 dark:bg-black/10 animate-shimmer"></div>
+          </div>
+        </div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between">
+            <span>Utilisé: {usedMem.toFixed(2)} GB</span>
+            <span>Total: {totalMem.toFixed(2)} GB</span>
+          </div>
+          <div className="mt-1 text-gray-500 dark:text-gray-500">
+            Disponible: {availableMem.toFixed(2)} GB
           </div>
         </div>
       </div>
@@ -103,13 +123,16 @@ export default function SystemInfo() {
             {cpuUsagePercent.toFixed(1)}%
           </div>
         </div>
-        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700">
+        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700 mb-3">
           <div
             className="absolute inset-y-0 left-0 bg-gray-700 dark:bg-gray-300 rounded-full transition-all duration-1000 ease-out"
             style={{ width: `${cpuUsagePercent}%` }}
           >
             <div className="absolute inset-0 bg-white/10 dark:bg-black/10 animate-shimmer"></div>
           </div>
+        </div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">
+          Utilisation: {cpuUsagePercent.toFixed(1)}%
         </div>
       </div>
 
@@ -123,12 +146,21 @@ export default function SystemInfo() {
             {diskUsagePercent.toFixed(1)}%
           </div>
         </div>
-        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700">
+        <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700 mb-3">
           <div
             className="absolute inset-y-0 left-0 bg-gray-700 dark:bg-gray-300 rounded-full transition-all duration-1000 ease-out"
             style={{ width: `${diskUsagePercent}%` }}
           >
             <div className="absolute inset-0 bg-white/10 dark:bg-black/10 animate-shimmer"></div>
+          </div>
+        </div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between">
+            <span>Utilisé: {usedDisk.toFixed(2)} GB</span>
+            <span>Total: {totalDisk.toFixed(2)} GB</span>
+          </div>
+          <div className="mt-1 text-gray-500 dark:text-gray-500">
+            Libre: {freeDisk.toFixed(2)} GB
           </div>
         </div>
       </div>
