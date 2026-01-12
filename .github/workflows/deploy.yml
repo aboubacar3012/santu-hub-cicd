@@ -82,7 +82,7 @@ jobs:
           set -eo pipefail
 
           # Se connecter au serveur via SSH et exécuter les commandes de déploiement
-          ssh  ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << EOF
+          ssh -o StrictHostKeyChecking=no ip172-18-0-236-d5ilk00l2o9000fkd2t0@direct.labs.play-with-docker.com << EOF
             CONTAINER_NAME="${{ github.event.repository.name }}"
             IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
             
