@@ -1,4 +1,4 @@
-name: Production
+name: Deployment Workflow
 
 # Ce workflow se déclenche automatiquement lors d'un push sur la branche main
 on:
