@@ -1,8 +1,11 @@
-name: Deployment Workflow
+name: Deploy
 
-# Ce workflow se déclenche automatiquement lors d'un push sur la branche main
+# Ce workflow se déclenche après la réussite du workflow Build
 on:
-  push:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
     branches:
       - main
 
@@ -12,71 +15,14 @@ env:
   IMAGE_NAME: ${{ github.repository }} # Nom du repository GitHub (ex: aboubacar3012/santu-hub-cicd-example)
 
 jobs:
-  # Construction et publication de l'image Docker sur GitHub Container Registry
-  build-image:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      pull-requests: read
-      actions: read
-
-    steps:
-      # Télécharger le code source du commit
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Supprimer l'ancien fichier .env s'il existe
-      - name: Clean old .env file
-        run: rm -f .env
-
-      # Créer le fichier .env avec les variables GitHub
-      - name: Create .env file from GitHub variables
-        run: |
-          {
-            echo "VARIABLE1=${VARIABLE1}"
-            echo "VARIABLE2=${VARIABLE2}"
-            echo "VARIABLE3=${VARIABLE3}"
-          } > .env
-        env:
-          VARIABLE1: ${{ vars.VARIABLE1 }}
-          VARIABLE2: ${{ vars.VARIABLE2 }}
-          VARIABLE3: ${{ vars.VARIABLE3 }}
-
-      # Afficher le contenu du fichier .env pour débugger
-      - name: Debug .env
-        run: |
-          echo "------ Contenu de .env ------"
-          cat .env
-          echo "----------------------------------------"
-
-      # Se connecter au registre Docker GitHub Container Registry
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.PAT_GITHUB_TOKEN }}
-
-      # Rendre le script exécutable
-      - name: Make script executable
-        run: chmod +x build-image.sh
-
-      # Construire et publier l'image Docker sur GitHub Container Registry
-      - name: Build and push image
-        run: ./build-image.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # Déploiement de l'application sur le serveur de production
   deploy:
     runs-on: ubuntu-latest
-    needs: [build-image]
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       # Se connecter au serveur et déployer l'application
       - name: Deploy to production server
-        if: needs.build-image.result == 'success'
         shell: bash
         run: |
           set -euo pipefail
