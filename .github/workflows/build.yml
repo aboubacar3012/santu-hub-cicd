@@ -1,4 +1,4 @@
-name: Build Workflow
+name: Build Santu Hub CICD
 
 # Ce workflow se déclenche automatiquement lors d'un push sur la branche main
 on:

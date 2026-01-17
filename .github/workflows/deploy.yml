@@ -1,8 +1,8 @@
-name: Deploy
+name: Deploy Santu Hub CICD
 
 on:
   workflow_run:
-    workflows: ["Build Workflow"]
+    workflows: ["Build Santu Hub CICD"]
     types:
       - completed
     branches:
