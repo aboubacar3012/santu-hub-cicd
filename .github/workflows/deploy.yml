@@ -1,13 +1,5 @@
 name: Deploy
 
-# on:
-#   workflow_run:
-#     workflows: ["Build"]
-#     types:
-#       - completed
-#     branches:
-#       - main
-
 on:
   push:
     branches:
@@ -31,13 +23,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          CONTAINER_NAME="${{ github.event.repository.name }}"
+          CONTAINER_NAME="${{ vars.SSH_USER }}-${{ github.event.repository.name }}"
           IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh \
             -o StrictHostKeyChecking=no \
-            -p ${{ secrets.SSH_PORT }} \
-            ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << EOF
+            -p ${{ vars.SSH_PORT }} \
+            ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << EOF
 
             set -e
 
@@ -53,7 +45,7 @@ jobs:
             docker pull $IMAGE_TAG
 
             echo "Démarrage du conteneur..."
-            docker run -d --name $CONTAINER_NAME -p 3000:3000 --restart unless-stopped $IMAGE_TAG
+            docker run -d --name $CONTAINER_NAME -p ${{ vars.CONTAINER_PORT }}:${{ vars.CONTAINER_PORT }} --restart unless-stopped $IMAGE_TAG
 
             echo "Vérification du statut du conteneur..."
             docker ps | grep $CONTAINER_NAME
