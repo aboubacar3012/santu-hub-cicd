@@ -11,18 +11,22 @@ export async function GET() {
     .sort()
     .reduce((acc, key) => {
       const value = process.env[key];
-      if (value && value.length > 0) {
+      // Inclure les variables même si elles sont vides
+      if (value !== undefined) {
         const lowerKey = key.toLowerCase();
         // Masquer partiellement les valeurs potentiellement sensibles
         if (
-          lowerKey.includes("key") ||
-          lowerKey.includes("api") ||
-          lowerKey.includes("auth") ||
-          lowerKey.includes("token")
+          value &&
+          value.length > 0 &&
+          (lowerKey.includes("key") ||
+            lowerKey.includes("api") ||
+            lowerKey.includes("auth") ||
+            lowerKey.includes("token"))
         ) {
           acc[key] = value.length > 8 ? `${value.substring(0, 4)}...${value.substring(value.length - 4)}` : "***";
         } else {
-          acc[key] = value;
+          // Afficher la valeur (même si vide)
+          acc[key] = value || "";
         }
       }
       return acc;
