@@ -1,49 +1,107 @@
+# ==============================================================================
+# WORKFLOW DE BUILD - SANTU HUB CICD
+# ==============================================================================
+#
+# RÉCAPITULATIF:
+# ==============
+# Ce workflow construit l'image Docker de l'application et la publie sur
+# GitHub Container Registry (ghcr.io). Il se déclenche automatiquement lors
+# d'un push sur les branches main ou develop.
+#
+# PROCESSUS DE BUILD:
+# ===================
+# 1. Téléchargement du code source depuis le repository GitHub
+# 2. Authentification à GitHub Container Registry
+# 3. Rendre le script build-image.sh exécutable
+# 4. Construction de l'image Docker via le script build-image.sh
+# 5. Publication de l'image sur GitHub Container Registry
+#
+# VARIABLES D'ENVIRONNEMENT:
+# ===========================
+# - env.REGISTRY : Registre Docker (ghcr.io)
+# - env.IMAGE_NAME : Nom du repository GitHub (utilisé comme nom d'image)
+#
+# SECRETS REQUIS (GitHub Secrets):
+# =================================
+# - secrets.PAT_GITHUB_TOKEN : Personal Access Token GitHub pour publier l'image
+# - secrets.GITHUB_TOKEN : Token GitHub automatique (fourni par GitHub Actions)
+#
+# PERMISSIONS:
+# ============
+# - contents: read : Lecture du code source
+# - packages: write : Écriture dans GitHub Container Registry
+# - pull-requests: read : Lecture des pull requests
+# - actions: read : Lecture des actions
+#
+# DÉCLENCHEMENT:
+# ==============
+# - Automatique lors d'un push sur les branches main ou develop
+# - Déclenchement manuel possible (workflow_dispatch) - commenté
+#
+# NOTE IMPORTANTE:
+# ================
+# Les variables d'environnement de l'application ne sont PAS incluses dans
+# l'image Docker. Elles seront injectées au moment du docker run lors du
+# déploiement pour plus de flexibilité et de sécurité.
+#
+# ==============================================================================
+
 name: Build Santu Hub CICD
 
-# Ce workflow se déclenche automatiquement lors d'un push sur la branche main
+# Déclenchement automatique lors d'un push sur main ou develop
 on:
   push:
     branches:
-      - main
-      - develop
+      # - main
+      # - develop
+  # Déclenchement manuel (commenté)
+  # workflow_dispatch:
 
 # Variables d'environnement partagées par tous les jobs
 env:
-  REGISTRY: ghcr.io # GitHub Container Registry - où sont stockées nos images Docker
+  REGISTRY: ghcr.io # GitHub Container Registry - où sont stockées les images Docker
   IMAGE_NAME: ${{ github.repository }} # Nom du repository GitHub (ex: aboubacar3012/santu-hub-cicd)
 
 jobs:
-  # Construction et publication de l'image Docker sur GitHub Container Registry
+  # Job de construction et publication de l'image Docker
   build-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Runner Ubuntu pour exécuter les commandes
+
+    # Permissions nécessaires pour accéder au repository et publier l'image
     permissions:
-      contents: read
-      packages: write
-      pull-requests: read
-      actions: read
+      contents: read        # Lecture du code source
+      packages: write       # Écriture dans GitHub Container Registry
+      pull-requests: read   # Lecture des pull requests
+      actions: read         # Lecture des actions
 
     steps:
-      # Télécharger le code source du commit
+      # Étape 1 : Téléchargement du code source du commit
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Note: Les variables d'environnement seront injectées au moment du docker run
-      # Elles ne sont plus incluses dans l'image Docker
+      # Note importante : Les variables d'environnement seront injectées au moment du docker run
+      # Elles ne sont plus incluses dans l'image Docker pour plus de flexibilité
 
-      # Se connecter au registre Docker GitHub Container Registry
+      # Étape 2 : Authentification à GitHub Container Registry
+      # Nécessaire pour pouvoir publier l'image Docker
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.PAT_GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}              # Registre Docker (ghcr.io)
+          username: ${{ github.actor }}              # Nom d'utilisateur GitHub
+          password: ${{ secrets.PAT_GITHUB_TOKEN }}  # Token d'authentification
 
-      # Rendre le script exécutable
+      # Étape 3 : Rendre le script build-image.sh exécutable
+      # Le script contient la logique de construction et publication de l'image
       - name: Make script executable
         run: chmod +x build-image.sh
 
-      # Construire et publier l'image Docker sur GitHub Container Registry
+      # Étape 4 : Construction et publication de l'image Docker
+      # Le script build-image.sh gère :
+      #   - La construction de l'image Docker
+      #   - Le tagging de l'image (latest)
+      #   - La publication sur GitHub Container Registry
       - name: Build and push image
         run: ./build-image.sh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token GitHub pour les opérations sur le registre

@@ -1,50 +1,104 @@
+# ==============================================================================
+# WORKFLOW DE DÉPLOIEMENT - SANTU HUB CICD
+# ==============================================================================
+#
+# RÉCAPITULATIF:
+# ==============
+# Ce workflow déploie l'application sur un serveur de production via SSH.
+# Il récupère l'image Docker depuis GitHub Container Registry et la lance
+# dans un conteneur sur le serveur distant.
+#
+# PROCESSUS DE DÉPLOIEMENT:
+# =========================
+# 1. Installation de sshpass (outil pour authentification SSH par mot de passe)
+# 2. Connexion SSH au serveur de production
+# 3. Authentification à GitHub Container Registry (pour récupérer l'image)
+# 4. Arrêt et suppression de l'ancien conteneur (si existant)
+# 5. Suppression de l'ancienne image Docker (nettoyage)
+# 6. Récupération de la nouvelle image depuis le registre
+# 7. Démarrage du nouveau conteneur avec les variables d'environnement
+# 8. Vérification du statut du conteneur
+#
+# VARIABLES REQUISES (GitHub Variables):
+# ======================================
+# - vars.SSH_HOST : Adresse IP ou hostname du serveur de production
+# - vars.SSH_PORT : Port SSH du serveur (généralement 22)
+# - vars.SSH_USER : Nom d'utilisateur SSH pour la connexion
+# - vars.CONTAINER_PORT : Port sur lequel l'application écoute (ex: 3000)
+#
+# SECRETS REQUIS (GitHub Secrets):
+# =================================
+# - secrets.SSH_PASSWORD : Mot de passe pour l'authentification SSH
+# - secrets.PAT_GITHUB_TOKEN : Personal Access Token GitHub pour accéder au registre
+#
+# DÉCLENCHEMENT:
+# ==============
+# - Manuel uniquement (workflow_dispatch)
+# - Déclenchement depuis l'interface GitHub Actions
+#
+# ==============================================================================
+
 name: Deploy Santu Hub CICD
 
-# Ce workflow se déclenche manuellement
+# Déclenchement manuel uniquement
 on:
-  workflow_dispatch:
+  # workflow_dispatch:
 
+# Variables d'environnement partagées par tous les jobs
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io # GitHub Container Registry - où sont stockées les images Docker
+  IMAGE_NAME: ${{ github.repository }} # Nom du repository GitHub (ex: aboubacar3012/santu-hub-cicd)
 
 jobs:
+  # Job de déploiement sur le serveur de production
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Runner Ubuntu pour exécuter les commandes
 
     steps:
+      # Installation de sshpass pour l'authentification SSH par mot de passe
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
+      # Étape principale : déploiement sur le serveur de production
       - name: Deploy to production server (SSH password)
         shell: bash
         run: |
+          # Mode strict : arrêt immédiat en cas d'erreur
           set -euo pipefail
 
+          # Construction du nom du conteneur : {SSH_USER}-{REPOSITORY_NAME}
           CONTAINER_NAME="${{ vars.SSH_USER }}-${{ github.event.repository.name }}"
+          # Tag complet de l'image : ghcr.io/{REPOSITORY}:latest
           IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
+          # Connexion SSH au serveur de production avec authentification par mot de passe
+          # Options SSH : désactive la vérification de la clé hôte, utilise un port personnalisé
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh \
             -o StrictHostKeyChecking=no \
             -p ${{ vars.SSH_PORT }} \
             ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << EOF
 
+            # Mode strict pour les commandes exécutées sur le serveur distant
             set -e
 
+            # Authentification à GitHub Container Registry pour pouvoir récupérer l'image
             echo "Authentification à GitHub Container Registry..."
             echo "${{ secrets.PAT_GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
+            # Nettoyage : arrêt et suppression de l'ancien conteneur s'il existe
+            # Utilisation de || true pour continuer même si les ressources n'existent pas
             echo "Arrêt et suppression du conteneur existant s'il existe..."
             docker stop $CONTAINER_NAME || true
             docker rm $CONTAINER_NAME || true
             docker rmi $IMAGE_TAG || true
 
+            # Récupération de la nouvelle image depuis GitHub Container Registry
             echo "Récupération de l'image..."
             docker pull $IMAGE_TAG
 
+            # Démarrage du nouveau conteneur avec les configurations nécessaires
+            # Options : mapping des ports, variables d'environnement, redémarrage automatique
             echo "Démarrage du conteneur..."
-            # docker run -d --name $CONTAINER_NAME -p ${{ vars.CONTAINER_PORT }}:${{ vars.CONTAINER_PORT }} --restart unless-stopped $IMAGE_TAG
-
             docker run -d --name $CONTAINER_NAME \
               -p ${{ vars.CONTAINER_PORT }}:${{ vars.CONTAINER_PORT }} \
               -e CONTAINER_PORT="${{ vars.CONTAINER_PORT }}" \
@@ -54,12 +108,16 @@ jobs:
               --restart unless-stopped \
               $IMAGE_TAG
 
+            # Vérification que le conteneur est bien démarré
             echo "Vérification du statut du conteneur..."
             docker ps | grep $CONTAINER_NAME
           EOF
 
+          # Message de confirmation après la fin du déploiement
           echo "Déploiement terminé ✅"
 
+      # Étape finale : confirmation de succès
+      # S'exécute uniquement si toutes les étapes précédentes ont réussi
       - name: Deployment success
         run: echo "Déploiement terminé avec succès."
         if: success()
