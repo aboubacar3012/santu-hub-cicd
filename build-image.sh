@@ -1,6 +1,44 @@
 #!/bin/bash
 
-# Script pour construire et publier l'image Docker de santu-hub-cicd
+# ==============================================================================
+# SCRIPT DE CONSTRUCTION ET PUBLICATION D'IMAGE DOCKER - SANTU HUB CICD
+# ==============================================================================
+#
+# RÉCAPITULATIF:
+# ==============
+# Ce script construit l'image Docker de l'application et la publie sur
+# GitHub Container Registry (ghcr.io). Il gère automatiquement le versioning
+# basé sur l'auteur du commit, la date et le contexte (PR ou branche).
+#
+# PROCESSUS DE CONSTRUCTION:
+# ==========================
+# 1. Définition des variables (nom d'image, registre, repository)
+# 2. Génération du tag de version (auteur-date ou auteur-date-pr)
+#    - Utilise GITHUB_ACTOR dans GitHub Actions
+#    - Si Pull Request : inclut le numéro et titre de la PR dans le tag
+# 3. Construction de l'image Docker pour la plateforme linux/amd64
+# 4. Authentification à GitHub Container Registry avec GITHUB_TOKEN
+# 5. Tag de l'image avec le tag généré et "latest"
+# 6. Publication des deux tags sur GitHub Container Registry
+#
+# VARIABLES REQUISES (Environnement):
+# ====================================
+# - PROJECT_ROOT : Chemin vers le répertoire racine du projet (pour la construction)
+#
+# VARIABLES OPTIONNELLES (GitHub Actions):
+# ========================================
+# - GITHUB_ACTIONS : Définie automatiquement dans GitHub Actions
+# - GITHUB_ACTOR : Nom d'utilisateur GitHub (définie automatiquement)
+# - GITHUB_TOKEN : Token d'authentification (définie automatiquement)
+# - GITHUB_HEAD_REF : Branche source de la PR (si dans une Pull Request)
+# - GITHUB_REF : Référence Git (pour extraire le numéro de PR)
+# - GITHUB_REPOSITORY : Nom du repository (ex: aboubacar3012/santu-hub-cicd)
+#
+# DÉCLENCHEMENT:
+# ==============
+# - Exécution dans GitHub Actions : via workflow de build
+#
+# ==============================================================================
 
 # *************************** VARIABLES  ****************************
 # Définir les variables
